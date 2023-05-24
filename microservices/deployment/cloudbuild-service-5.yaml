@@ -1,0 +1,38 @@
+steps:
+  # Step 0: Clone your code repository. I'm specifying the branch here with -b cloud/deployment
+  - name: 'gcr.io/cloud-builders/git'
+    args: [ 'clone', '-b', 'main', 'https://github.com/RemivDeursen/Main.git' ]
+    id: 'Clone repository'
+    
+  - name: 'gcr.io/cloud-builders/mvn'
+    args: ['--version']
+
+  # Step 1: Maven package - Specify the pom.xml file to use
+  # This should cover all of the microservices using the Pom in the root folder
+  - name: 'gcr.io/cloud-builders/mvn'
+    args: ['clean', 'package', '-f', './microservices/pom.xml']
+    id: 'Maven package all microservices'
+
+  # Step 2: Docker Build - Specify the tag (service name) and folder where to address the build
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$_PROJECT_ID/invoice-service:$_IMAGE_TAG', 'microservices/invoice-service']
+    id: 'Build service'
+
+  # Step 3: Docker Push - Specify the tag (service name) and folder where to address the push
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$_PROJECT_ID/invoice-service:$_IMAGE_TAG']
+    id: 'Push service to GCR'
+
+  # Step 4: Deploy the Docker image to Kubernetes
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args: ['apply', '-f', './microservices/invoice-service/kubernetes/deployment.yaml']
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=europe-west1'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=autopilot-cluster-1'
+    id: 'Deploy service'
+
+substitutions:
+  _IMAGE_TAG: 'latest' # The tag for the image. I'm using latest for now
+  _PROJECT_ID: 'graphic-matrix-308512' # The Google cloud project id
+images: ['gcr.io/graphic-matrix-308512/invoice-service:latest']
+timeout: '1800s'
