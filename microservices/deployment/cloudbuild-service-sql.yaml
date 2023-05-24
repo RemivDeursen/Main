@@ -1,0 +1,12 @@
+steps:
+  - name: 'gcr.io/cloud-builders/mvn'
+    args: ['--version']
+
+    # Step 1.1: Deploy MySQL
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args: ['apply', '-f', 'microservices/extra-services/mysql-deployment.yaml']
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=europe-west1'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=autopilot-cluster-1'
+    id: 'Deploy msql-service'
+timeout: '1800s'
